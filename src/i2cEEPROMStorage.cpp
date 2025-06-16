@@ -1,6 +1,6 @@
 #include <i2cEEPROMStorage.h>
 
-i2cEEPROMStorage::i2cEEPROMStorage(uint8_t address, uint8_t size)
+i2cEEPROMStorage::i2cEEPROMStorage(uint8_t address, int size)
     : eeprom(address, size), _ROMSIZE(size) {}
 
 bool i2cEEPROMStorage::begin()
@@ -56,6 +56,7 @@ void i2cEEPROMStorage::writeToAddress(int addr, String data)
     for (int i = 0; i < data.length(); i++)
     {
         eeprom.write(addr + i, data[i]);
+        delay(4);
     }
     eeprom.write(addr + data.length(), '\0');
 }
@@ -93,6 +94,7 @@ bool i2cEEPROMStorage::write(String key, String value)
     }
     Serial.println("Writing Address");
     writeToAddress(addr, key);
+    delay(10);
     int valueAddr = addr + key.length() + 1;
     writeToAddress(valueAddr, value);
     Serial.println("Write Good!");

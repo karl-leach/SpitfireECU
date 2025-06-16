@@ -26,12 +26,11 @@ private:
     String readFromAddress(int addr);
 
 public:
-    i2cEEPROMStorage(uint8_t address = 0x50, uint8_t size = (uint8_t)256);
+    i2cEEPROMStorage(uint8_t address = 0x50, int size = 256);
     bool begin() override;
     void SetRomSize(int size);
     bool write(String key, String value) override;
     String read(String key) override;
     void flash();
 };
-
 #endif
