@@ -26,7 +26,7 @@ void setup() {
     Serial.begin(115200);
     
     i2cEEPROMStorage eepromStorage(0x50,(uint8_t)256);
-    eepromStorage.flash();
+    //eepromStorage.flash();
     eepromStorage.SetRomSize(256);
     storage = &eepromStorage;
     storage->begin();
@@ -58,7 +58,9 @@ void setup() {
     tacho.setValue(6000);
 
     Miles++;
+    Serial.println("startwrite");
     storage->write("Mileage", String(Miles));
+    Serial.println("endwrite");
 
 }
 
