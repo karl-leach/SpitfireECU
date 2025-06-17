@@ -21,6 +21,7 @@ hw_timer_t *timer = NULL;
 hw_timer_t *timer2 = NULL;
 static unsigned long lastTimerUpdate = 0;
 
+bool low_oil_warning_on = false;
 
 float currentValue =0;
 
@@ -44,6 +45,22 @@ SpeedSensor speedinput;
 #ifdef TACHO
 Gauge tacho(TACHO_OUTPUT_PIN,TACHO_OUTPUT_MIN_ANGLE,TACHO_OUTPUT_MAX_ANGLE,TACHO_OUTPUT_MIN_VALUE,TACHO_OUTPUT_MAX_VALUE,TACHO_OUTPUT_ISDIGITAL,TACHO_OUTPUT_CLOCKWISE);
 TachoSensor tachoinput(PPR);
+#endif
+
+#ifdef OIL_PRESSURE_GAUGE
+Gauge OilGauge(OIL_PRESSURE_GAUGE_PIN,45,135,OIL_PRESSURE_MIN_VALUE,OIL_PRESSURE_MAX_VALUE,OIL_PRESSURE_IS_DIGITAL, OIL_PRESSURE_CLOCKWISE);
+#endif
+
+#ifdef BATTERY_CHARGE_GAUGE
+Gauge BattGauge(BATTERY_GAUGE_PIN,45,135,MIN_BATTERY_VALUE,MAX_BATTERY_VALUE,BATTERY_SENSOR_IS_DIGITAL, BATTERY_LEVEL_CLOCKWISE);
+#endif
+
+#ifdef FUEL_LEVEL_GAUGE
+Gauge FuelGauge(FUEL_LEVEL_GAUGE_PIN,45,135,FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE,FUEL_SENSOR_IS_DIGITAL, FUEL_LEVEL_CLOCKWISE);
+#endif
+
+#ifdef TEMP_LEVEL_GAUGE
+Gauge TempGauge(TEMP_LEVEL_SENSOR_PIN,45,135,TEMP_LEVEL_MIN_VALUE,TEMP_LEVEL_MAX_VALUE,TEMP_SENSOR_IS_DIGITAL, TEMP_LEVEL_CLOCKWISE);
 #endif
 
 
@@ -107,6 +124,22 @@ void setup() {
 
     #endif
 
+    #ifdef OIL_PRESSURE_GAUGE
+        OilGauge.initialize();
+    #endif
+
+    #ifdef BATTERY_CHARGE_GAUGE
+        BattGauge.initialize();
+    #endif
+
+    #ifdef FUEL_LEVEL_GAUGE
+        FuelGauge.initialize();
+    #endif
+
+    #ifdef TEMP_LEVEL_GAUGE
+        TempGauge.initialize();
+    #endif
+
 
     #ifdef TACHO
         tacho.initialize();
@@ -115,18 +148,12 @@ void setup() {
 
     #endif
 
-    delay(1500);
-
-
-
+    delay(500);
 }
-
-
 
 void loop() 
 {
-    delay(250);
-    
+    delay(200);
 
     Serial.print("Miles:");
     Serial.println(Miles);
@@ -158,6 +185,55 @@ void loop()
      }
     #endif
 
+    #ifdef OIL_PRESSURE_GAUGE
+    int value = analogRead(OIL_PRESSURE_SENSOR_PIN);
+    int mappedvalue = map(value,OIL_PRESSURE_MIN_READING, OIL_PRESSURE_MAX_READING,OIL_PRESSURE_MIN_VALUE, OIL_PRESSURE_MAX_VALUE);
+    OilGauge.setValue(mappedvalue);
+        #ifdef PANELLIGHTS
+            #ifdef OIL_LED_PIN
+                if(mappedvalue < 5)
+                {
+                    low_oil_warning_on = true;
+                    digitalWrite(OIL_LED_PIN,HIGH);
+                }
+            #endif
+        #endif
+    #endif
+
+    #ifdef BATTERY_CHARGE_GAUGE
+    value = analogRead(BATTERY_SENSOR_PIN);
+    mappedvalue = map(value,MIN_BATTERY_READING, MAX_BATTERY_READING, MIN_BATTERY_VALUE,MAX_BATTERY_VALUE);
+    BattGauge.setValue(mappedvalue);
+    #endif
+
+    #ifdef FUEL_LEVEL_GAUGE
+    value = analogRead(FUEL_LEVEL_SENSOR_PIN);
+    mappedvalue = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
+    FuelGauge.setValue(mappedvalue);
+    #endif
+
+    #ifdef TEMP_LEVEL_GAUGE
+    value = analogRead(FUEL_LEVEL_SENSOR_PIN);
+    mappedvalue = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
+    FuelGauge.setValue(mappedvalue);
+    #endif
+
+    #ifdef IGN_LED_PIN
+        #ifdef TACHO
+            bool isRunning = tachoinput.getRPM() > 0;  
+
+            if(isRunning)
+            {
+                digitalWrite(IGN_LED_PIN, HIGH);
+            }
+            else
+            {
+                digitalWrite(IGN_LED_PIN, LOW);
+            }
+
+        #endif
+    #endif
+  
 
 }
 
