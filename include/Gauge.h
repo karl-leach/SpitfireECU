@@ -17,12 +17,17 @@ private:
     int currentValue;
     int targetValue;
 
+    int smoothedValue[5];
+    int indexPos = 0;
+
+    
+
 public:
     // Constructor
     Gauge(int _pin, int _minDegrees, int _maxDegrees, int _minValue, int _maxValue, bool _isDigital, bool _Clockwise);
 
     // Function to set the gauge value
-    void setValue(float value);
+    void setValue(float value, bool smoothed);
 
     void initialize();
 

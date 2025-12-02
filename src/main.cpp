@@ -12,18 +12,24 @@
 #include <SpeedSensor.h>
 #include <Config.h>
 #include<TachoSensor.h>
+#include <WiFi.h>
 
 
 
 
-int Miles = 12345;
-hw_timer_t *timer = NULL;
-hw_timer_t *timer2 = NULL;
-static unsigned long lastTimerUpdate = 0;
+unsigned long lastTimerUpdate = 0;
 
 bool low_oil_warning_on = false;
 
 float currentValue =0;
+
+int currentSpeed;
+int currentRPM;
+int currentMiles;
+int currentOilPressure;
+float currentBatteryLevel;
+int currentFuelLevel;
+int currentTemperature;
 
 #ifdef ODOMETER
     MileageDisplay display;
@@ -71,23 +77,12 @@ void testinterrupt()
 
 // Placeholder byte arrays (replace with your actual images)
 void setup() {
+
+    WiFi.mode(WIFI_OFF); // Disable WiFi to save power
+    btStop();
+
     Serial.begin(115200);
 
-    //#define TIMERTEST
-    #ifdef TIMERTEST
-    timer = timerBegin(0, 80, true); // Use Timer 0, prescaler 80 (1µs resolution)
-    timerAttachInterrupt(timer, &speedinput.handleInterrupt, true);
-    timerAlarmWrite(timer, 3000, true); // 2500µs = 2.5ms (400 Hz)
-    timerAlarmEnable(timer);
-
-    timer2 = timerBegin(0, 80, true);
-    timerAttachInterrupt(timer2, &tachoinput.handleInterrupt, true);
-    timerAlarmWrite(timer2, 5000, true); // Start with 5ms interval
-    timerAlarmEnable(timer2);
-
-    #endif
-    
-    
     #ifdef EEPROMSTORAGE
         eepromStorage.SetRomSize(EEPROM_SIZE);
         storage = &eepromStorage;
@@ -102,23 +97,23 @@ void setup() {
     #ifdef STORAGE
         if(storage->read("Mileage").length() > 0)
         {
-            Miles = storage->read("Mileage").toInt();
+            currentMiles = storage->read("Mileage").toInt();
         }
         else
         {
-            Miles = 100000;
-            storage->write("Mileage", String(Miles));
+            currentMiles = 000000;
+            storage->write("Mileage", String(currentMiles));
         }
     #endif
 
     #ifdef ODOMETER
     display.initialize();
-    display.setMileage(Miles);
+    display.setMileage(currentMiles);
     #endif
 
     #ifdef SPEEDO
         speedo.initialize();
-        speedo.setValue(SPEED_OUTPUT_MIN_VALUE);
+        speedo.setValue(SPEED_OUTPUT_MIN_VALUE, false);
         pinMode(SPEED_SENSOR_PIN, INPUT);
         attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_PIN), speedinput.handleInterrupt, FALLING);
 
@@ -153,45 +148,42 @@ void setup() {
 
 void loop() 
 {
-    delay(200);
-
-    Serial.print("Miles:");
-    Serial.println(Miles);
+    delay(10);
 
     #ifdef SPEEDO
-        int result = speedinput.getCurrentSpeed();
-        speedo.setValue(result);
-        Serial.println(result);
+        currentSpeed = speedinput.getCurrentSpeed();
+        speedo.setValue(currentSpeed,false);
+        Serial.println(currentSpeed);
     #endif
 
     #ifdef TACHO
-        int tacho_result = tachoinput.getRPM();
-        tacho.setValue(tacho_result);
-        Serial.println(tacho_result);
+        int currentRPM = tachoinput.getRPM();
+        tacho.setValue(currentRPM,false);
+        Serial.println(currentRPM);
     #endif
 
     #ifdef ODOMETER
      int increase = speedinput.getDistanceTravelled();
      if(increase > 0)
      {
-        Miles += increase;
+        currentMiles += increase;
         #ifdef STORAGE
-             storage->write("Mileage", String(Miles));
+             storage->write("Mileage", String(currentMiles));
         #endif
         
         #ifdef ODOMETER
-            display.setMileage(Miles);
+            display.setMileage(currentMiles);
         #endif
      }
     #endif
 
     #ifdef OIL_PRESSURE_GAUGE
     int value = analogRead(OIL_PRESSURE_SENSOR_PIN);
-    int mappedvalue = map(value,OIL_PRESSURE_MIN_READING, OIL_PRESSURE_MAX_READING,OIL_PRESSURE_MIN_VALUE, OIL_PRESSURE_MAX_VALUE);
-    OilGauge.setValue(mappedvalue);
+    currentOilPressure = map(value,OIL_PRESSURE_MIN_READING, OIL_PRESSURE_MAX_READING,OIL_PRESSURE_MIN_VALUE, OIL_PRESSURE_MAX_VALUE);
+    OilGauge.setValue(currentOilPressure,true);
         #ifdef PANELLIGHTS
             #ifdef OIL_LED_PIN
-                if(mappedvalue < 5)
+                if(currentOilPressure < OIL_PRESSURE_WARNING_THRESHOLD)
                 {
                     low_oil_warning_on = true;
                     digitalWrite(OIL_LED_PIN,HIGH);
@@ -202,27 +194,34 @@ void loop()
 
     #ifdef BATTERY_CHARGE_GAUGE
     value = analogRead(BATTERY_SENSOR_PIN);
-    mappedvalue = map(value,MIN_BATTERY_READING, MAX_BATTERY_READING, MIN_BATTERY_VALUE,MAX_BATTERY_VALUE);
-    BattGauge.setValue(mappedvalue);
+    Serial.print("Battery ADC:");
+    Serial.println(value);  
+    
+    currentBatteryLevel = map(value,MIN_BATTERY_READING, MAX_BATTERY_READING, MIN_BATTERY_VALUE,MAX_BATTERY_VALUE);
+
+    Serial.print("Battery Mapped:");
+    Serial.println(currentBatteryLevel);
+
+    BattGauge.setValue(currentBatteryLevel,true);
     #endif
 
     #ifdef FUEL_LEVEL_GAUGE
     value = analogRead(FUEL_LEVEL_SENSOR_PIN);
-    mappedvalue = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
-    FuelGauge.setValue(mappedvalue);
+    currentFuelLevel = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
+    FuelGauge.setValue(currentFuelLevel,true);
     #endif
 
     #ifdef TEMP_LEVEL_GAUGE
     value = analogRead(FUEL_LEVEL_SENSOR_PIN);
-    mappedvalue = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
-    FuelGauge.setValue(mappedvalue);
+    currentTemperature = map(value,FUEL_LEVEL_MIN_READING, FUEL_LEVEL_MAX_READING, FUEL_LEVEL_MIN_VALUE,FUEL_LEVEL_MAX_VALUE);
+    TempGauge.setValue(currentTemperature,true);
     #endif
 
     #ifdef IGN_LED_PIN
         #ifdef TACHO
-            bool isRunning = tachoinput.getRPM() > 0;  
+            bool isRunning = tachoinput.getRPM() > 100;  
 
-            if(isRunning)
+            if(!isRunning)
             {
                 digitalWrite(IGN_LED_PIN, HIGH);
             }
@@ -233,7 +232,12 @@ void loop()
 
         #endif
     #endif
-  
+
+    if(millis() - lastTimerUpdate >= 5000)
+    {
+        lastTimerUpdate = millis();
+        //future logging here.
+    }
 
 }
 

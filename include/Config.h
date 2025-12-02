@@ -38,9 +38,6 @@
 #endif
 
 
-
-
-
 #define OIL_PRESSURE_GAUGE
 #ifdef OIL_PRESSURE_GAUGE
 
@@ -52,6 +49,7 @@
 #define OIL_PRESSURE_MAX_VALUE 80
 #define OIL_PRESSURE_IS_DIGITAL false
 #define OIL_PRESSURE_CLOCKWISE true
+#define OIL_PRESSURE_WARNING_THRESHOLD 15
 
 #endif
 
@@ -60,8 +58,8 @@
 
 #define BATTERY_GAUGE_PIN 18
 #define BATTERY_SENSOR_PIN 35
-#define MIN_BATTERY_READING 0
-#define MAX_BATTERY_READING 4096
+#define MIN_BATTERY_READING 1950
+#define MAX_BATTERY_READING 2990
 #define MIN_BATTERY_VALUE 0
 #define MAX_BATTERY_VALUE 100
 #define BATTERY_SENSOR_IS_DIGITAL false
@@ -99,8 +97,6 @@
 
 #endif
 
-
-
 #define STORAGE
 #ifdef STORAGE 
     // EEPROM STORAGE
@@ -122,18 +118,20 @@
         #error "EEPROMSTORAGE and SDSTORAGE cannot coexist!"
     #endif
 
+    #define LOGGING
 
 #endif
 
 
 #define ODOMETER
 
-
 #define PANELLIGHTS
 
+#ifdef PANELLIGHTS
 #define OIL_LED_PIN 6
 #define IGN_LED_PIN 7
-
 #endif
 
 
+
+#endif

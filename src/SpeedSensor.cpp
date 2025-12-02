@@ -5,6 +5,8 @@ volatile unsigned long SpeedSensor::counter = 0;
 volatile unsigned long SpeedSensor::lastpulseTime = 0;
 volatile unsigned long SpeedSensor::lastPulseDuration = 0;
 
+volatile bool SpeedSensor::hasSensed = false;
+
 SpeedSensor::SpeedSensor()
 {
     counter = 0;
@@ -14,8 +16,10 @@ SpeedSensor::SpeedSensor()
 
 void IRAM_ATTR SpeedSensor::handleInterrupt()
 {
+    
     static int pulsecount = 0;
     pulsecount++;
+    hasSensed = true;
 
     if(pulsecount == 4)
     {

@@ -16,24 +16,33 @@ Gauge::Gauge(int _pin, int _minDegrees, int _maxDegrees, int _minValue, int _max
 }
 
 // Function to set the gauge value
-void Gauge::setValue(float value) {
+void Gauge::setValue(float value, bool smoothed) {
     // Clamp value within display range
     if (value < minValue) value = minValue;
     if (value > maxValue) value = maxValue;
 
-    int angle = 0;
+    int newAngle = 0;
 
-    if(!Clockwise)
-        targetValue = map(value, maxValue, minValue, minDegrees, maxDegrees);
+    if (!Clockwise)
+        newAngle = map(value, maxValue, minValue, minDegrees, maxDegrees);
     else
-        targetValue = map(value, minValue, maxValue, minDegrees, maxDegrees);
+        newAngle = map(value, minValue, maxValue, minDegrees, maxDegrees);
 
-    
+    // --- Optional smoothing ---
+    if (smoothed) 
+    {
+        smoothedValue[indexPos] = newAngle;
+        indexPos = (indexPos + 1) % 10;
+        int sum = smoothedValue[0] + smoothedValue[1] + smoothedValue[2] + smoothedValue[3] + smoothedValue[4] + smoothedValue[5] + smoothedValue[6] + smoothedValue[7] + smoothedValue[8] + smoothedValue[9];
+        targetValue = sum / 10;
+    }
+
+    targetValue = newAngle;
     servo.write(targetValue); // Analog control with PWM
 }
 
 void Gauge::initialize()
 {
-    setValue(0);
+    setValue(0,false);
     delay(1000);
 }
